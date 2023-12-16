@@ -13,13 +13,13 @@ on:
   pull_request_target:
     branches:
       - Alpha
-      
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-  
+
 env:
-  REGISTRY: docker.io
+  REGISTRY: ghcr.io
 jobs:
   Build:
     permissions: write-all
@@ -28,64 +28,17 @@ jobs:
       fail-fast: false
       matrix:
         job:
+          - { target: "linux-amd64 linux-amd64-compatible" }
+          - { target: "linux-armv5 linux-armv6 linux-armv7" }
+          - { target: "linux-arm64 linux-mips64 linux-mips64le" }
           - {
-              type: "WithoutCGO",
-              target: "linux-amd64 linux-amd64-compatible",
-              id: "1",
-            }
-          - {
-              type: "WithoutCGO",
-              target: "linux-armv5 linux-armv6 linux-armv7",
-              id: "2",
-            }
-          - {
-              type: "WithoutCGO",
-              target: "linux-arm64 linux-mips64 linux-mips64le",
-              id: "3",
-            }
-          - {
-              type: "WithoutCGO",
               target: "linux-mips-softfloat linux-mips-hardfloat linux-mipsle-softfloat linux-mipsle-hardfloat",
-              id: "4",
             }
-          - { type: "WithoutCGO", target: "linux-386 linux-riscv64 linux-loong64", id: "5" }
-          - {
-              type: "WithoutCGO",
-              target: "freebsd-386 freebsd-amd64 freebsd-arm64",
-              id: "6",
-            }
-          - {
-              type: "WithoutCGO",
-              target: "windows-amd64-compatible windows-amd64 windows-386",
-              id: "7",
-            }
-          - {
-              type: "WithoutCGO",
-              target: "windows-arm64 windows-arm32v7",
-              id: "8",
-            }
-          - {
-              type: "WithoutCGO",
-              target: "darwin-amd64 darwin-arm64 android-arm64",
-              id: "9",
-            }
-          # only for test
-          - { type: "WithoutCGO-GO120", target: "linux-amd64 linux-amd64-compatible",id: "1" }
-          # Go 1.20 is the last release that will run on any release of Windows 7, 8, Server 2008 and Server 2012. Go 1.21 will require at least Windows 10 or Server 2016.
-          - { type: "WithoutCGO-GO120", target: "windows-amd64-compatible windows-amd64 windows-386",id: "2" }
-          # Go 1.20 is the last release that will run on macOS 10.13 High Sierra or 10.14 Mojave. Go 1.21 will require macOS 10.15 Catalina or later.
-          - { type: "WithoutCGO-GO120", target: "darwin-amd64 darwin-arm64 android-arm64",id: "3" }
-#          - { type: "WithCGO", target: "windows/*", id: "1" }
-#          - { type: "WithCGO", target: "linux/386", id: "2" }
-#          - { type: "WithCGO", target: "linux/amd64", id: "3" }
-#          - { type: "WithCGO", target: "linux/arm64,linux/riscv64", id: "4" }
-#          - { type: "WithCGO", target: "linux/arm,", id: "5" }
-#          - { type: "WithCGO", target: "linux/arm-6,linux/arm-7", id: "6" }
-#          - { type: "WithCGO", target: "linux/mips,linux/mipsle", id: "7" }
-#          - { type: "WithCGO", target: "linux/mips64", id: "8" }
-#          - { type: "WithCGO", target: "linux/mips64le", id: "9" }
-#          - { type: "WithCGO", target: "darwin-10.16/*", id: "10" }
-#          - { type: "WithCGO", target: "android", id: "11" }
+          - { target: "linux-386 linux-riscv64" }
+          - { target: "freebsd-386 freebsd-amd64 freebsd-arm64" }
+          - { target: "windows-amd64-compatible windows-amd64 windows-386" }
+          - { target: "windows-arm64 windows-arm32v7" }
+          - { target: "darwin-amd64 darwin-arm64 android-arm64" }
 
     steps:
       - name: Check out code into the Go module directory
@@ -101,11 +54,6 @@ jobs:
         shell: bash
 
       - name: Set variables
-        if: ${{github.ref_name=='Beta'}}
-        run: echo "VERSION=beta-$(git rev-parse --short HEAD)" >> $GITHUB_ENV
-        shell: bash
-
-      - name: Set variables
         if: ${{github.ref_name=='Meta'}}
         run: echo "VERSION=meta-$(git rev-parse --short HEAD)" >> $GITHUB_ENV
         shell: bash
@@ -118,93 +66,51 @@ jobs:
       - name: Set ENV
         run: |
           sudo timedatectl set-timezone "Asia/Shanghai"
+          echo "NAME=mihomo" >> $GITHUB_ENV
+          echo "REPO=${{ github.repository }}" >> $GITHUB_ENV
+          echo "ShortSHA=$(git rev-parse --short ${{ github.sha }})" >> $GITHUB_ENV
           echo "BUILDTIME=$(date)" >> $GITHUB_ENV
+          echo "BRANCH=$(git rev-parse --abbrev-ref HEAD)" >> $GITHUB_ENV
         shell: bash
 
       - name: Set ENV
         run: |
-          echo "TAGS=with_gvisor,with_lwip" >> $GITHUB_ENV
+          echo "TAGS=with_gvisor" >> $GITHUB_ENV
           echo "LDFLAGS=-X 'github.com/metacubex/mihomo/constant.Version=${VERSION}' -X 'github.com/metacubex/mihomo/constant.BuildTime=${BUILDTIME}' -w -s -buildid=" >> $GITHUB_ENV
           echo "GOTOOLCHAIN=local" >> $GITHUB_ENV
         shell: bash
 
       - name: Setup Go
-        if: ${{ matrix.job.type!='WithoutCGO-GO120' }}
         uses: actions/setup-go@v4
         with:
           go-version: "1.21"
           check-latest: true
 
-      - name: Setup Go
-        if: ${{ matrix.job.type=='WithoutCGO-GO120' }}
-        uses: actions/setup-go@v4
-        with:
-          go-version: "1.20"
-          check-latest: true
-
       - name: Test
-        if: ${{ matrix.job.id=='1' && matrix.job.type!='WithCGO' }}
         run: |
           go test ./...
 
-      - name: Build WithoutCGO
-        if: ${{ matrix.job.type!='WithCGO' }}
+      - name: Build
         env:
-          NAME: mihomo
+          NAME: "clash.meta"
           BINDIR: bin
         run: make -j$(($(nproc) + 1)) ${{ matrix.job.target }}
 
       - uses: nttld/setup-ndk@v1
-        if: ${{ matrix.job.type=='WithCGO' && matrix.job.target=='android' }}
+        if: ${{ matrix.job.target=='android' }}
         id: setup-ndk
         with:
           ndk-version: r26b
           add-to-path: true
 
       - name: Build Android
-        if: ${{ matrix.job.type=='WithCGO' && matrix.job.target=='android' }}
+        if: ${{ matrix.job.target=='android' }}
         env:
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
         run: |
           mkdir bin
           CC=${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android33-clang
           CGO_ENABLED=1 CC=${CC} GOARCH=arm64 GOOS=android go build -tags ${TAGS} -trimpath -ldflags "${LDFLAGS}" -o bin/${NAME}-android-arm64
-
-      - name: Set up xgo
-        if: ${{ matrix.job.type=='WithCGO' && matrix.job.target!='android' }}
-        run: |
-          docker pull techknowlogick/xgo:latest
-          go install src.techknowlogick.com/xgo@latest
-
-      - name: Build by xgo
-        if: ${{ matrix.job.type=='WithCGO' && matrix.job.target!='android' }}
-        env:
-          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
-        run: |
-          mkdir bin
-          xgo --targets="${{ matrix.job.target }}" --tags="${TAGS}" -ldflags="${LDFLAGS}" --out bin/${NAME} ./
-
-      - name: Rename
-        if: ${{ matrix.job.type=='WithCGO' }}
-        run: |
-          cd bin
-          ls -la
-          cp ../.github/rename-cgo.sh ./
-          bash ./rename-cgo.sh
-          rm ./rename-cgo.sh
-          ls -la
-          cd ..
-
-      - name: Rename
-        if: ${{ matrix.job.type=='WithoutCGO-GO120' }}
-        run: |
-          cd bin
-          ls -la
-          cp ../.github/rename-go120.sh ./
-          bash ./rename-go120.sh
-          rm ./rename-go120.sh
-          ls -la
-          cd ..
 
       - name: Zip
         if: ${{  success() }}
@@ -350,8 +256,8 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
-          username: ${{ secrets.DOCKER_HUB_USER }}
-          password: ${{ secrets.DOCKER_HUB_TOKEN }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       # Build and push Docker image with Buildx (don't push on PR)
       # https://github.com/docker/build-push-action
