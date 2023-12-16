@@ -31,9 +31,8 @@ jobs:
           - { target: "linux-amd64 linux-amd64-compatible" }
           - { target: "linux-armv5 linux-armv6 linux-armv7" }
           - { target: "linux-arm64 linux-mips64 linux-mips64le" }
-          - {
-              target: "linux-mips-softfloat linux-mips-hardfloat linux-mipsle-softfloat linux-mipsle-hardfloat",
-            }
+          - { target: "linux-mips-softfloat linux-mips-hardfloat" }
+          - { target: "linux-mipsle-softfloat linux-mipsle-hardfloat" }
           - { target: "linux-386 linux-riscv64" }
           - { target: "freebsd-386 freebsd-amd64 freebsd-arm64" }
           - { target: "windows-amd64-compatible windows-amd64 windows-386" }
