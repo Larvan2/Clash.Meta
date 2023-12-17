@@ -184,6 +184,12 @@ func (r *Resolver) exchangeWithoutCache(ctx context.Context, m *D.Msg) (msg *D.M
 			msg := result.(*D.Msg)
 
 			if cache {
+				// skip dns cache for acme challenge
+				if q.Qtype == D.TypeTXT && strings.HasPrefix(q.Name, "_acme-challenge.") {
+					log.Debugln("[DNS] dns cache ignored because of acme challenge for: %s", q.Name)
+					return
+				}
+
 				// OPT RRs MUST NOT be cached, forwarded, or stored in or loaded from master files.
 				msg.Extra = lo.Filter(msg.Extra, func(rr D.RR, index int) bool {
 					return rr.Header().Rrtype != D.TypeOPT

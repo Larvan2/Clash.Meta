@@ -51,12 +51,6 @@ func updateTTL(records []D.RR, ttl uint32) {
 }
 
 func putMsgToCache(c dnsCache, key string, q D.Question, msg *D.Msg) {
-	// skip dns cache for acme challenge
-	if q.Qtype == D.TypeTXT && strings.HasPrefix(q.Name, "_acme-challenge.") {
-		log.Debugln("[DNS] dns cache ignored because of acme challenge for: %s", q.Name)
-		return
-	}
-
 	var ttl uint32
 	if msg.Rcode == D.RcodeServerFailure {
 		// [...] a resolver MAY cache a server failure response.
@@ -68,6 +62,7 @@ func putMsgToCache(c dnsCache, key string, q D.Question, msg *D.Msg) {
 	if ttl == 0 {
 		return
 	}
+	ttl = max(ttl, 120)
 	c.SetWithExpire(key, msg.Copy(), time.Now().Add(time.Duration(ttl)*time.Second))
 }
 
