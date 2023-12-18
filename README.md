@@ -1,20 +1,16 @@
 <h1 align="center">
-  <img src="Meta.png" alt="Meta Kennel" width="200">
+  <img src="Meta.png" alt="Clash.Meta Kennel" width="200">
   <br>Meta Kernel<br>
 </h1>
 
-<h3 align="center">Another Mihomo Kernel.</h3>
 
 <p align="center">
   <a href="https://goreportcard.com/report/github.com/MetaCubeX/mihomo">
     <img src="https://goreportcard.com/badge/github.com/MetaCubeX/mihomo?style=flat-square">
   </a>
-  <img src="https://img.shields.io/github/go-mod/go-version/MetaCubeX/mihomo?style=flat-square">
-  <a href="https://github.com/MetaCubeX/mihomo/releases">
-    <img src="https://img.shields.io/github/release/MetaCubeX/mihomo/all.svg?style=flat-square">
-  </a>
-  <a href="https://github.com/MetaCubeX/mihomo">
-    <img src="https://img.shields.io/badge/release-Meta-00b4f0?style=flat-square">
+  <img src="https://img.shields.io/github/go-mod/go-version/larvan2/clash.meta?style=flat-square">
+  <a href="https://github.com/larvan2/clash.meta/releases">
+    <img src="https://img.shields.io/github/release/larvan2/clash.meta/all.svg?style=flat-square">
   </a>
 </p>
 
@@ -40,12 +36,12 @@ Configuration example is located at [/docs/config.yaml](https://github.com/MetaC
 
 ## Docs
 
-Documentation can be found in [mihomo Docs](https://wiki.metacubex.one/).
+Documentation can be found in [Clash.Meta Docs](https://wiki.metacubex.one/).
 
 ## For development
 
 Requirements:
-[Go 1.20 or newer](https://go.dev/dl/)
+[Go 1.21 or newer](https://go.dev/dl/)
 
 Build mihomo:
 
