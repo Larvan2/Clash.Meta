@@ -33,7 +33,7 @@ jobs:
           - { target: "linux-arm64 linux-mips64 linux-mips64le" }
           - { target: "linux-mips-softfloat linux-mips-hardfloat" }
           - { target: "linux-mipsle-softfloat linux-mipsle-hardfloat" }
-          - { target: "linux-386 linux-riscv64" }
+          - { target: "linux-386 linux-riscv64 linux-loong64" }
           - { target: "freebsd-386 freebsd-amd64 freebsd-arm64" }
           - { target: "windows-amd64-compatible windows-amd64 windows-386" }
           - { target: "windows-arm64 windows-arm32v7" }
@@ -65,11 +65,7 @@ jobs:
       - name: Set ENV
         run: |
           sudo timedatectl set-timezone "Asia/Shanghai"
-          echo "NAME=mihomo" >> $GITHUB_ENV
-          echo "REPO=${{ github.repository }}" >> $GITHUB_ENV
-          echo "ShortSHA=$(git rev-parse --short ${{ github.sha }})" >> $GITHUB_ENV
           echo "BUILDTIME=$(date)" >> $GITHUB_ENV
-          echo "BRANCH=$(git rev-parse --abbrev-ref HEAD)" >> $GITHUB_ENV
         shell: bash
 
       - name: Set ENV
@@ -172,7 +168,7 @@ jobs:
           Release created at  ${{ env.BUILDTIME }}
           Synchronize ${{ github.ref_name }} branch code updates, keeping only the latest version
           <br>
-          [我应该下载哪个文件? / Which file should I download?](https://github.com/MetaCubeX/mihomo/wiki/FAQ)
+          [我应该下载哪个文件? / Which file should I download?](https://metacubex.github.io/Meta-Docs/startup/#_1)
           [查看文档 / Docs](https://metacubex.github.io/Meta-Docs/)
           EOF
 
