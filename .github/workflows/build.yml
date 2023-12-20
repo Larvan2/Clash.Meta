@@ -207,7 +207,7 @@ jobs:
           generate_release_notes: true
 
   Docker:
-    if: ${{ !startsWith(github.event_name, 'pull_request') }}
+    if: ${{ github.ref_type=='tag' }}
     permissions: write-all
     needs: [Build]
     runs-on: ubuntu-latest
