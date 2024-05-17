@@ -3,6 +3,7 @@ package outboundgroup
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/dlclark/regexp2"
@@ -125,7 +126,7 @@ func ParseProxyGroup(config map[string]any, proxyMap map[string]C.Proxy, provide
 		} else {
 			addTestUrlToProviders(PDs, groupOption.URL, expectedStatus, groupOption.Filter, uint(groupOption.Interval))
 		}
-		providers = append(providers, PDs...)
+		providers = slices.Concat(providers, PDs)
 	}
 
 	if len(groupOption.Proxies) != 0 {
@@ -156,7 +157,7 @@ func ParseProxyGroup(config map[string]any, proxyMap map[string]C.Proxy, provide
 			return nil, fmt.Errorf("%s: %w", groupName, err)
 		}
 
-		providers = append([]types.ProxyProvider{pd}, providers...)
+		providers = slices.Concat([]types.ProxyProvider{pd}, providers)
 		providersMap[groupName] = pd
 	}
 

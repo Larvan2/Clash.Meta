@@ -19,9 +19,9 @@ func init() {
 	log.SetOutput(os.Stdout)
 	log.SetLevel(log.DebugLevel)
 	log.SetFormatter(&log.TextFormatter{
-		FullTimestamp:             true,
-		TimestampFormat:           "2006-01-02T15:04:05.999999999Z07:00",
-		EnvironmentOverrideColors: true,
+		FullTimestamp:   true,
+		TimestampFormat: "UTC-07:00 2006-01-02 15:04:05",
+		ForceColors:     true,
 	})
 }
 
