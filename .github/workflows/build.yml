@@ -1,6 +1,10 @@
 name: Build
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Tag version to release"
+        required: true
   push:
     paths-ignore:
       - "docs/**"
@@ -13,13 +17,12 @@ on:
   pull_request_target:
     branches:
       - Alpha
-      
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
   
 env:
-  REGISTRY: docker.io
+  REGISTRY: ghcr.io
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -108,13 +111,13 @@ jobs:
         curl https://github.com/golang/go/commit/9e43850a3298a9b8b1162ba0033d4c53f8637571.diff | patch --verbose -R -p 1
 
     - name: Set variables
-      if: ${{github.ref_name=='Alpha'}}
-      run: echo "VERSION=alpha-$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+      if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version != '' }}
+      run: echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
       shell: bash
 
     - name: Set variables
-      if: ${{github.ref_name=='' || github.ref_type=='tag'}}
-      run: echo "VERSION=$(git describe --tags)" >> $GITHUB_ENV
+      if: ${{ github.event_name != 'workflow_dispatch' && github.ref_name == 'Alpha' }}
+      run: echo "VERSION=alpha-$(git rev-parse --short HEAD)" >> $GITHUB_ENV
       shell: bash
 
     - name: Set Time Variable
@@ -167,68 +170,6 @@ jobs:
           rm mihomo-${{matrix.jobs.goos}}-${{matrix.jobs.output}}
         fi
 
-    - name: Create DEB package
-      if: ${{ matrix.jobs.goos == 'linux' && !contains(matrix.jobs.goarch, 'mips') }}
-      run: |
-        sudo apt-get install dpkg
-        if [ "${{matrix.jobs.abi}}" = "1" ]; then
-          ARCH=loongarch64
-        else
-          ARCH=${{matrix.jobs.goarch}}
-        fi
-        PackageVersion=$(curl -s "https://api.github.com/repos/MetaCubeX/mihomo/releases/latest" | grep -o '"tag_name": "[^"]*' | grep -o '[^"]*$' | sed 's/v//g' )
-        if [ $(git branch | awk -F ' ' '{print $2}') = "Alpha" ]; then
-          PackageVersion="$(echo "${PackageVersion}" | awk -F '.' '{$NF = $NF + 1; print}' OFS='.')-${VERSION}"
-        fi
-
-        mkdir -p mihomo-${{matrix.jobs.goos}}-${{matrix.jobs.output}}-${VERSION}/DEBIAN
-        mkdir -p mihomo-${{matrix.jobs.goos}}-${{matrix.jobs.output}}-${VERSION}/usr/bin
-        mkdir -p mihomo-${{matrix.jobs.goos}}-${{matrix.jobs.output}}-${VERSION}/etc/mihomo
-        mkdir -p mihomo-${{matrix.jobs.goos}}-${{matrix.jobs.output}}-${VERSION}/etc/systemd/system/
-        mkdir -p mihomo-${{matrix.jobs.goos}}-${{matrix.jobs.output}}-${VERSION}/usr/share/licenses/mihomo
-
-        cp mihomo mihomo-${{matrix.jobs.goos}}-${{matrix.jobs.output}}-${VERSION}/usr/bin/mihomo
-        cp LICENSE mihomo-${{matrix.jobs.goos}}-${{matrix.jobs.output}}-${VERSION}/usr/share/licenses/mihomo/
-        cp .github/mihomo.service mihomo-${{matrix.jobs.goos}}-${{matrix.jobs.output}}-${VERSION}/etc/systemd/system/
-
-        cat > mihomo-${{matrix.jobs.goos}}-${{matrix.jobs.output}}-${VERSION}/etc/mihomo/config.yaml <<EOF
-        mixed-port: 7890
-        external-controller: 127.0.0.1:9090
-        EOF
-
-        cat > mihomo-${{matrix.jobs.goos}}-${{matrix.jobs.output}}-${VERSION}/DEBIAN/control <<EOF
-        Package: mihomo
-        Version: ${PackageVersion}
-        Section:
-        Priority: extra
-        Architecture: ${ARCH}
-        Maintainer: MetaCubeX <none@example.com>
-        Homepage: https://wiki.metacubex.one/
-        Description: The universal proxy platform.
-        EOF
-
-        dpkg-deb -Z gzip --build mihomo-${{matrix.jobs.goos}}-${{matrix.jobs.output}}-${VERSION}
-
-    - name: Convert DEB to RPM
-      if: ${{ matrix.jobs.goos == 'linux' && !contains(matrix.jobs.goarch, 'mips') }}
-      run: |
-        sudo apt-get install -y alien
-        alien --to-rpm --scripts mihomo-${{matrix.jobs.goos}}-${{matrix.jobs.output}}-${VERSION}.deb
-        mv mihomo*.rpm mihomo-${{matrix.jobs.goos}}-${{matrix.jobs.output}}-${VERSION}.rpm
-
-    # - name: Convert DEB to PKG
-    #   if: ${{ matrix.jobs.goos == 'linux' && !contains(matrix.jobs.goarch, 'mips') && !contains(matrix.jobs.goarch, 'loong64') }}
-    #   run: |
-    #     docker pull archlinux
-    #     docker run --rm -v ./:/mnt archlinux bash -c "
-    #       pacman -Syu pkgfile base-devel --noconfirm
-    #       curl -L https://github.com/helixarch/debtap/raw/master/debtap > /usr/bin/debtap
-    #       chmod 755 /usr/bin/debtap
-    #       debtap -u 
-    #       debtap -Q /mnt/mihomo-${{matrix.jobs.goos}}-${{matrix.jobs.output}}-${VERSION}.deb
-    #     "
-    #     mv mihomo*.pkg.tar.zst mihomo-${{matrix.jobs.goos}}-${{matrix.jobs.output}}-${VERSION}.pkg.tar.zst
-
     - name: Save version
       run: |
         echo ${VERSION} > version.txt
@@ -247,7 +188,7 @@ jobs:
 
   Upload-Prerelease:
     permissions: write-all
-    if: ${{ github.ref_type == 'branch' && !startsWith(github.event_name, 'pull_request') }}
+    if: ${{ github.event_name != 'workflow_dispatch' && github.ref_type == 'branch' && !startsWith(github.event_name, 'pull_request') }}
     needs: [build]
     runs-on: ubuntu-latest
     steps:
@@ -298,41 +239,136 @@ jobs:
 
   Upload-Release:
     permissions: write-all
-    if: ${{ github.ref_type=='tag' }}
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version != '' }}
     needs: [build]
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: Meta
+          fetch-depth: '0'
+          fetch-tags: 'true'
 
-    - name: Get tags
-      run: |
-        echo "CURRENTVERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
-        git fetch --tags
-        echo "PREVERSION=$(git describe --tags --abbrev=0 HEAD^)" >> $GITHUB_ENV
+      - name: Get tags
+        run: |
+          echo "CURRENTVERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+          git fetch --tags
+          echo "PREVERSION=$(git describe --tags --abbrev=0 HEAD)" >> $GITHUB_ENV
 
-    - name: Generate release notes
-      run: |
-          cp ./.github/genReleaseNote.sh ./
-          bash ./genReleaseNote.sh -v ${PREVERSION}...${CURRENTVERSION}
-          rm ./genReleaseNote.sh
+      - name: Merge Alpha branch into Meta
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          git fetch origin Alpha:Alpha
+          git merge Alpha
+          git push origin Meta
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - uses: actions/download-artifact@v4
-      with:
-        path: bin/
-        merge-multiple: true
+      - name: Tag the commit
+        run: |
+          git tag ${{ github.event.inputs.version }}
+          git push origin ${{ github.event.inputs.version }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Display structure of downloaded files
-      run: ls -R
-      working-directory: bin
+      - name: Generate release notes
+        run: |
+            cp ./.github/genReleaseNote.sh ./
+            bash ./genReleaseNote.sh -v ${PREVERSION}...${CURRENTVERSION}
+            rm ./genReleaseNote.sh
+  
+      - uses: actions/download-artifact@v4
+        with:
+          path: bin/
+          merge-multiple: true
+  
+      - name: Display structure of downloaded files
+        run: ls -R
+        working-directory: bin
+  
+      - name: Upload Release
+        uses: softprops/action-gh-release@v2
+        if: ${{ success() }}
+        with:
+          tag_name: ${{ github.event.inputs.version }}
+          files: bin/*
+          body_path: release.md
 
-    - name: Upload Release
-      uses: softprops/action-gh-release@v1
-      if: ${{  success() }}
-      with:
-        tag_name: ${{ github.ref_name }}
-        files: bin/*
-        generate_release_notes: true
-        body_path: release.md
+  Docker:
+    if: ${{ !startsWith(github.event_name, 'pull_request') }}
+    permissions: write-all
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: bin/
+          merge-multiple: true
+
+      - name: Display structure of downloaded files
+        run: ls -R
+        working-directory: bin
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Setup Docker buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          version: latest
+      
+      - name: Set Docker tags and labels based on trigger
+        id: set-meta
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tags=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+            echo "labels=org.opencontainers.image.version=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+          else
+            echo "tags=${{ steps.meta.outputs.tags }}" >> $GITHUB_ENV
+            echo "labels=${{ steps.meta.outputs.labels }}" >> $GITHUB_ENV
+          fi
+
+      # Extract metadata (tags, labels) for Docker
+      # https://github.com/docker/metadata-action
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository }}
+          tags: ${{ env.tags }}
+          labels: ${{ env.labels }}
+
+
+      - name: Show files
+        run: |
+          ls .
+          ls bin/
+
+      - name: login to docker REGISTRY
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        id: build-and-push
+        uses: docker/build-push-action@v5
+        with:
+          conresponse: .
+          file: ./Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          platforms: |
+            linux/386
+            linux/amd64
+            linux/arm64
+            linux/arm/v7
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
