@@ -328,11 +328,8 @@ jobs:
         id: set-meta
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "tags= ${{ github.repository }}:${{ github.event.inputs.version }}, ${{ github.repository }}:latest" >> $GITHUB_ENV
+            echo "tags=${{ github.repository }}:latest,${{ github.repository }}:${{ github.event.inputs.version }}" >> $GITHUB_ENV
             echo "labels=org.opencontainers.image.version=${{ github.event.inputs.version }}" >> $GITHUB_ENV
-          else
-            echo "tags=${{ steps.meta.outputs.tags }}" >> $GITHUB_ENV
-            echo "labels=${{ steps.meta.outputs.labels }}" >> $GITHUB_ENV
           fi
           
       # Extract metadata (tags, labels) for Docker
@@ -354,7 +351,7 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: ${{ github.repository.owner }}
+          username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push Docker image
