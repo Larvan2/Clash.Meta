@@ -332,8 +332,6 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: '${{ env.REGISTRY }}/${{ github.repository }}'
-          tags: ${{ github.repository }}:Alpha
-          labels: ${{ env.labels }}
       
       # Extract metadata (tags, labels) for Docker
       # https://github.com/docker/metadata-action
@@ -343,7 +341,10 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: '${{ env.REGISTRY }}/${{ github.repository }}'
-          tags: '${{ github.repository }}:latest,${{ github.repository }}:${{ github.event.inputs.version }}'
+          tags: |
+            ${{ github.event.inputs.version }}
+          flavor: |
+            latest=true
           labels: org.opencontainers.image.version=${{ github.event.inputs.version }}
           
       - name: Show files
