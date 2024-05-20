@@ -328,7 +328,7 @@ jobs:
         id: set-meta
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "tags=latest,${{ github.event.inputs.version }}" >> $GITHUB_ENV
+            echo "tags= ${{ github.repository }}:${{ github.event.inputs.version }}, ${{ github.repository }}:latest" >> $GITHUB_ENV
             echo "labels=org.opencontainers.image.version=${{ github.event.inputs.version }}" >> $GITHUB_ENV
           else
             echo "tags=${{ steps.meta.outputs.tags }}" >> $GITHUB_ENV
@@ -354,7 +354,7 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: ${{ github.actor }}
+          username: ${{ github.repository.owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push Docker image
