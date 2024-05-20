@@ -359,7 +359,6 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push Docker image
-        id: build-and-push
         if: ${{ github.ref_name == 'Alpha' }}
         uses: docker/build-push-action@v5
         with:
@@ -375,7 +374,6 @@ jobs:
           labels: ${{ steps.meta_alpha.outputs.labels }}
           
       - name: Build and push Docker image
-        id: build-and-push
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version != '' }}
         uses: docker/build-push-action@v5
         with:
