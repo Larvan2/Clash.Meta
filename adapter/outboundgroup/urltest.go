@@ -54,6 +54,10 @@ func (u *URLTest) Set(name string) error {
 	return nil
 }
 
+func (u *URLTest) CloseRelatedConns() {
+	u.closeRelatedConns()
+}
+
 func (u *URLTest) ForceSet(name string) {
 	u.selected = name
 	u.fastSingle.Reset()
@@ -205,14 +209,15 @@ func parseURLTestOption(config map[string]any) []urlTestOption {
 func NewURLTest(option *GroupCommonOption, providers []provider.ProxyProvider, options ...urlTestOption) *URLTest {
 	urlTest := &URLTest{
 		GroupBase: NewGroupBase(GroupBaseOption{
-			Name:           option.Name,
-			Type:           C.URLTest,
-			Filter:         option.Filter,
-			ExcludeFilter:  option.ExcludeFilter,
-			ExcludeType:    option.ExcludeType,
-			TestTimeout:    option.TestTimeout,
-			MaxFailedTimes: option.MaxFailedTimes,
-			Providers:      providers,
+			Name:            option.Name,
+			Type:            C.URLTest,
+			Filter:          option.Filter,
+			ExcludeFilter:   option.ExcludeFilter,
+			ExcludeType:     option.ExcludeType,
+			TestTimeout:     option.TestTimeout,
+			MaxFailedTimes:  option.MaxFailedTimes,
+			CloseOnSelected: option.CloseOnSelected,
+			Providers:       providers,
 		}),
 		fastSingle:     singledo.NewSingle[C.Proxy](time.Second * 10),
 		disableUDP:     option.DisableUDP,

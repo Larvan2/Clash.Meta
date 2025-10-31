@@ -43,6 +43,7 @@ type GroupCommonOption struct {
 	IncludeAllProviders bool     `group:"include-all-providers,omitempty"`
 	Hidden              bool     `group:"hidden,omitempty"`
 	Icon                string   `group:"icon,omitempty"`
+	CloseOnSelected     bool     `group:"close-on-selected,omitempty"`
 
 	// removed configs, only for error logging
 	Interface   string `group:"interface-name,omitempty"`

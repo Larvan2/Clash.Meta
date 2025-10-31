@@ -17,10 +17,6 @@ import (
 	"github.com/go-chi/render"
 )
 
-var (
-	SwitchProxiesCallback func(sGroup string, sProxy string)
-)
-
 func proxyRouter() http.Handler {
 	r := chi.NewRouter()
 	r.Get("/", getProxies)
@@ -94,12 +90,10 @@ func updateProxy(w http.ResponseWriter, r *http.Request) {
 		render.JSON(w, r, newError(fmt.Sprintf("Selector update error: %s", err.Error())))
 		return
 	}
+	selector.CloseRelatedConns()
 
 	cachefile.Cache().SetSelected(proxy.Name(), req.Name)
-	if SwitchProxiesCallback != nil {
-		// refresh tray menu
-		go SwitchProxiesCallback(proxy.Name(), req.Name)
-	}
+
 	render.NoContent(w, r)
 }
 

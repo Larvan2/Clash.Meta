@@ -65,6 +65,7 @@ type General struct {
 	KeepAliveIdle           int               `json:"keep-alive-idle"`
 	KeepAliveInterval       int               `json:"keep-alive-interval"`
 	DisableKeepAlive        bool              `json:"disable-keep-alive"`
+	CloseOnSelected         bool              `json:"close-on-selected"`
 }
 
 // Inbound config
@@ -270,7 +271,7 @@ type RawTun struct {
 	MTU        uint32 `yaml:"mtu" json:"mtu,omitempty"`
 	GSO        bool   `yaml:"gso" json:"gso,omitempty"`
 	GSOMaxSize uint32 `yaml:"gso-max-size" json:"gso-max-size,omitempty"`
-	//Inet4Address           []netip.Prefix `yaml:"inet4-address" json:"inet4-address,omitempty"`
+	// Inet4Address           []netip.Prefix `yaml:"inet4-address" json:"inet4-address,omitempty"`
 	Inet6Address           []netip.Prefix `yaml:"inet6-address" json:"inet6-address,omitempty"`
 	IPRoute2TableIndex     int            `yaml:"iproute2-table-index" json:"iproute2-table-index,omitempty"`
 	IPRoute2RuleIndex      int            `yaml:"iproute2-rule-index" json:"iproute2-rule-index,omitempty"`
@@ -427,6 +428,7 @@ type RawConfig struct {
 	KeepAliveIdle           int               `yaml:"keep-alive-idle" json:"keep-alive-idle"`
 	KeepAliveInterval       int               `yaml:"keep-alive-interval" json:"keep-alive-interval"`
 	DisableKeepAlive        bool              `yaml:"disable-keep-alive" json:"disable-keep-alive"`
+	CloseOnSelected         bool              `yaml:"close-on-selected" json:"close-on-selected"`
 
 	ProxyProvider map[string]map[string]any `yaml:"proxy-providers" json:"proxy-providers"`
 	RuleProvider  map[string]map[string]any `yaml:"rule-providers" json:"rule-providers"`
@@ -595,7 +597,7 @@ func UnmarshalRawConfig(buf []byte) (*RawConfig, error) {
 
 func ParseRawConfig(rawCfg *RawConfig) (*Config, error) {
 	config := &Config{}
-	log.Infoln("Start initial configuration in progress") //Segment finished in xxm
+	log.Infoln("Start initial configuration in progress") // Segment finished in xxm
 	startTime := time.Now()
 
 	general, err := parseGeneral(rawCfg)
@@ -721,7 +723,7 @@ func ParseRawConfig(rawCfg *RawConfig) (*Config, error) {
 	}
 
 	elapsedTime := time.Since(startTime) / time.Millisecond                     // duration in ms
-	log.Infoln("Initial configuration complete, total time: %dms", elapsedTime) //Segment finished in xxm
+	log.Infoln("Initial configuration complete, total time: %dms", elapsedTime) // Segment finished in xxm
 
 	return config, nil
 }
@@ -772,6 +774,7 @@ func parseGeneral(cfg *RawConfig) (*General, error) {
 		KeepAliveIdle:           cfg.KeepAliveIdle,
 		KeepAliveInterval:       cfg.KeepAliveInterval,
 		DisableKeepAlive:        cfg.DisableKeepAlive,
+		CloseOnSelected:         cfg.CloseOnSelected,
 	}, nil
 }
 
@@ -916,8 +919,16 @@ func parseProxies(cfg *RawConfig) (proxies map[string]C.Proxy, providersMap map[
 	slices.Sort(AllProxies)
 	slices.Sort(AllProviders)
 
+	globalCloseOnSelected := cfg.CloseOnSelected
+
 	// parse proxy group
 	for idx, mapping := range groupsConfig {
+		if groupCloseOnSelected, ok := mapping["close-on-selected"].(bool); ok {
+			mapping["close-on-selected"] = groupCloseOnSelected
+		} else {
+			mapping["close-on-selected"] = globalCloseOnSelected
+		}
+
 		group, err := outboundgroup.ParseProxyGroup(mapping, proxies, providersMap, AllProxies, AllProviders)
 		if err != nil {
 			return nil, nil, fmt.Errorf("proxy group[%d]: %w", idx, err)

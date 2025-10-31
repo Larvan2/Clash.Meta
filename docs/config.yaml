@@ -1062,6 +1062,10 @@ proxies: # socks5
     type: direct
     interface-name: en1
     routing-mark: 6667
+
+# 可选择类型的代理组（select/urltest/fallback）在通过 api 选择节点后是否关闭之前的连接，默认为 false
+# close-on-selected: true 
+
 proxy-groups:
   # 代理链，目前 relay 可以支持 udp 的只有 vmess/vless/trojan/ss/ssr/tuic
   # wireguard 目前不支持在 relay 中使用，请使用 proxy 中的 dialer-proxy 配置项
@@ -1077,6 +1081,7 @@ proxy-groups:
   # url-test 将按照 url 测试结果使用延迟最低节点
   - name: "auto"
     type: url-test
+    # close-on-selected: false
     proxies:
       - ss1
       - ss2

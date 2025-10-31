@@ -150,17 +150,22 @@ func (f *Fallback) ForceSet(name string) {
 	f.selected = name
 }
 
+func (f *Fallback) CloseRelatedConns() {
+	f.closeRelatedConns()
+}
+
 func NewFallback(option *GroupCommonOption, providers []provider.ProxyProvider) *Fallback {
 	return &Fallback{
 		GroupBase: NewGroupBase(GroupBaseOption{
-			Name:           option.Name,
-			Type:           C.Fallback,
-			Filter:         option.Filter,
-			ExcludeFilter:  option.ExcludeFilter,
-			ExcludeType:    option.ExcludeType,
-			TestTimeout:    option.TestTimeout,
-			MaxFailedTimes: option.MaxFailedTimes,
-			Providers:      providers,
+			Name:            option.Name,
+			Type:            C.Fallback,
+			Filter:          option.Filter,
+			ExcludeFilter:   option.ExcludeFilter,
+			ExcludeType:     option.ExcludeType,
+			TestTimeout:     option.TestTimeout,
+			MaxFailedTimes:  option.MaxFailedTimes,
+			CloseOnSelected: option.CloseOnSelected,
+			Providers:       providers,
 		}),
 		disableUDP:     option.DisableUDP,
 		testUrl:        option.URL,

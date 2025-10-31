@@ -16,6 +16,8 @@ import (
 	types "github.com/metacubex/mihomo/constant/provider"
 	"github.com/metacubex/mihomo/log"
 	"github.com/metacubex/mihomo/tunnel"
+	"github.com/metacubex/mihomo/tunnel/statistic"
+	"github.com/samber/lo"
 
 	"github.com/dlclark/regexp2"
 	"golang.org/x/exp/slices"
@@ -33,6 +35,7 @@ type GroupBase struct {
 	failedTesting     atomic.Bool
 	TestTimeout       int
 	maxFailedTimes    int
+	closeOnSelected   bool
 
 	// for GetProxies
 	getProxiesMutex  sync.Mutex
@@ -41,14 +44,15 @@ type GroupBase struct {
 }
 
 type GroupBaseOption struct {
-	Name           string
-	Type           C.AdapterType
-	Filter         string
-	ExcludeFilter  string
-	ExcludeType    string
-	TestTimeout    int
-	MaxFailedTimes int
-	Providers      []provider.ProxyProvider
+	Name            string
+	Type            C.AdapterType
+	Filter          string
+	ExcludeFilter   string
+	ExcludeType     string
+	TestTimeout     int
+	MaxFailedTimes  int
+	CloseOnSelected bool
+	Providers       []provider.ProxyProvider
 }
 
 func NewGroupBase(opt GroupBaseOption) *GroupBase {
@@ -82,6 +86,7 @@ func NewGroupBase(opt GroupBaseOption) *GroupBase {
 		failedTesting:     atomic.NewBool(false),
 		TestTimeout:       opt.TestTimeout,
 		maxFailedTimes:    opt.MaxFailedTimes,
+		closeOnSelected:   opt.CloseOnSelected,
 	}
 
 	if gb.TestTimeout == 0 {
@@ -305,4 +310,16 @@ func (gb *GroupBase) onDialSuccess() {
 	if !gb.failedTesting.Load() {
 		gb.failedTimes = 0
 	}
+}
+
+func (gb *GroupBase) closeRelatedConns() {
+	if !gb.closeOnSelected {
+		return
+	}
+	statistic.DefaultManager.Range(func(tracker statistic.Tracker) bool {
+		if lo.Contains(tracker.Chains(), gb.Name()) {
+			_ = tracker.Close()
+		}
+		return true
+	})
 }
