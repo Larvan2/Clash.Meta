@@ -23,11 +23,11 @@ import (
 )
 
 const (
-	baseReleaseURL    = "https://github.com/MetaCubeX/mihomo/releases/latest/download/"
-	versionReleaseURL = "https://github.com/MetaCubeX/mihomo/releases/latest/download/version.txt"
+	baseReleaseURL    = "https://github.com/Larvan2/mihomo/releases/latest/download/"
+	versionReleaseURL = "https://github.com/Larvan2/mihomo/releases/latest/download/version.txt"
 
-	baseAlphaURL    = "https://github.com/MetaCubeX/mihomo/releases/download/Prerelease-Alpha/"
-	versionAlphaURL = "https://github.com/MetaCubeX/mihomo/releases/download/Prerelease-Alpha/version.txt"
+	baseAlphaURL    = "https://github.com/Larvan2/mihomo/releases/download/Prerelease-Alpha/"
+	versionAlphaURL = "https://github.com/Larvan2/mihomo/releases/download/Prerelease-Alpha/version.txt"
 
 	// MaxPackageFileSize is a maximum package file length in bytes. The largest
 	// package whose size is limited by this constant currently has the size of
@@ -134,7 +134,7 @@ func (u *CoreUpdater) Update(currentExePath string, channel string, force bool) 
 	backupDir := filepath.Join(workDir, "meta-backup")
 	updateDir := filepath.Join(workDir, "meta-update")
 	packagePath := filepath.Join(updateDir, packageName)
-	//log.Infoln(packagePath)
+	// log.Infoln(packagePath)
 
 	updateExeName := mihomoBaseName
 	if runtime.GOOS == "windows" {
